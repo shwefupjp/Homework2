@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Новости Minecraft</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #1f1c2c, #928dab);
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+    header {
+      background-color: #222;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+    }
+    nav {
+      background-color: #333;
+      text-align: center;
+      padding: 10px;
+    }
+    nav a {
+      color: #00ffcc;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 30px;
+      background-color: rgba(0,0,0,0.4);
+      border-radius: 15px;
+    }
+    .article img {
+      width: 100%;
+      border-radius: 15px;
+    }
+    .auth, .comments, .feedback {
+      margin-top: 30px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #00ffcc;
+      color: black;
+      cursor: pointer;
+    }
+    .comment-box {
+      background-color: rgba(255,255,255,0.2);
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
+    .feedback a {
+      color: #00ffcc;
+      text-decoration: none;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <header>📰 Новости Minecraft</header>
+  <nav>
+    <a href="#">Главная</a>
+    <a href="#">Новости</a>
+    <a href="#">Контакты</a>
+  </nav>
+  <div class="container">
+    <div class="article">
+      <img src="https://placekitten.com/800/300" alt="Minecraft News">
+      <h2>🔥 Обновление 1.21 уже здесь!</h2>
+      <p>Откройте для себя новые биомы, улучшенную генерацию мира и опасных мобов. Подробнее читайте ниже и оставляйте свои комментарии!</p>
+    </div>
+
+    <div class="auth">
+      <h3>🔐 Вход / Регистрация</h3>
+      <input type="text" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Пароль">
+      <button onclick="registerUser()">Зарегистрироваться</button>
+      <button onclick="loginUser()">Войти</button>
+      <button onclick="logoutUser()">Выйти</button>
+      <br><br>
+      <button onclick="loginWithGoogle()">Войти через Google</button>
+      <p id="userStatus">Вы не вошли</p>
+    </div>
+
+    <div class="comments">
+      <h3>💬 Комментарии</h3>
+      <form id="commentForm">
+        <textarea id="usercomment" rows="4" placeholder="Комментарий..."></textarea>
+        <button type="submit">Отправить</button>
+      </form>
+      <div id="commentList"></div>
+    </div>
+
+    <div class="feedback">
+      <h3>📢 Обратная связь</h3>
+      <p>Напишите нам в <a href="https://t.me/Kquahia" target="_blank">Telegram</a> или <a href="https://discord.gg/bHGMbwdn" target="_blank">Discord</a>.</p>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const userStatus = document.getElementById('userStatus');
+    const commentForm = document.getElementById('commentForm');
+    const commentList = document.getElementById('commentList');
+
+    function updateStatus(user) {
+      if (user) {
+        userStatus.innerText = `Вы вошли как: ${user.displayName || user.email}`;
+      } else {
+        userStatus.innerText = 'Вы не вошли';
+      }
+    }
+
+    function registerUser() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => updateStatus(userCredential.user))
+        .catch(err => alert(err.message));
+    }
+
+    function loginUser() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => updateStatus(userCredential.user))
+        .catch(err => alert(err.message));
+    }
+
+    function logoutUser() {
+      auth.signOut();
+    }
+
+    function loginWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then(result => updateStatus(result.user))
+        .catch(err => alert(err.message));
+    }
+
+    function loadComments() {
+      const comments = JSON.parse(localStorage.getItem('comments') || '[]');
+      commentList.innerHTML = '';
+      comments.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'comment-box';
+        div.innerHTML = `<strong>${c.name}</strong><p>${c.text}</p>`;
+        commentList.appendChild(div);
+      });
+    }
+
+    commentForm.onsubmit = (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Пожалуйста, войдите, чтобы оставить комментарий');
+        return;
+      }
+      const text = document.getElementById('usercomment').value.trim();
+      if (!text) return;
+      const comments = JSON.parse(localStorage.getItem('comments') || '[]');
+      comments.push({ name: user.displayName || user.email, text });
+      localStorage.setItem('comments', JSON.stringify(comments));
+      commentForm.reset();
+      loadComments();
+    };
+
+    auth.onAuthStateChanged(user => {
+      updateStatus(user);
+      loadComments();
+    });
+  </script>
+</body>
+</html>
